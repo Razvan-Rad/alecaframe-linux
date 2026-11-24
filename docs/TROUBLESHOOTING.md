@@ -68,6 +68,20 @@ Things that looked suspicious but were **not** the cause: `Bad data from invento
 warning about unknown inventory fields); cross-process memory reads (verified working inside the container);
 `ptrace_scope`.
 
+## Mouse capture fails after clicking AlecaFrame's window (KDE Wayland / XWayland)
+
+Click AlecaFrame's separate window, click back into Warframe: the game does not capture the mouse on the first click
+until you tab out and back in. Overwolf's log is clean (`Lost foreground, release control` / hooks reinstalled), so
+it is Wine's focus/grab handling under XWayland. `UseTakeFocus=N` did **not** help; `GrabFullscreen=Y` (Wine X11 driver,
+`HKCU\Software\Wine\X11 Driver`) did. Workaround without any change: open AlecaFrame with Overwolf's in-game
+overlay hotkey instead of clicking its window.
+
+## Overwolf keeps running after you quit Warframe
+
+Overwolf lives in the game's Wine session, so the session (and `protonhax`'s state, and Steam's "running" status)
+stays alive until Overwolf exits. Registry edits made while it is alive are overwritten when its wineserver exits —
+always quit Overwolf (`pkill -f OverwolfLauncher` and friends) before running the scripts.
+
 ## Ads
 
 AlecaFrame pages load `https://content.overwolf.com/libs/ads/latest/owads.min.js` with `onload="MainWindowAds.ready()"`;

@@ -22,6 +22,7 @@ automates the fixes.
 | 4 | Overwolf: `Win32Exception: Access denied` in `Process.MainModule` | run Overwolf **inside Steam's container** (launch wrapper) | `03-install-launcher.sh` |
 | 5 | Every Chromium helper crashes (`STATUS_ACCESS_VIOLATION` at `0x140000000`) → no UI | entry-point patch for `OverwolfBrowser.exe` (+ signature-check proxy) | `02-overwolf-fixes.sh` |
 | 6 | AlecaFrame says **"No game data"** | swap Wine's stub `d3dx11_43.dll` for Microsoft's real one | `02-overwolf-fixes.sh` |
+| 7 | Clicking AlecaFrame's window then Warframe: game can't capture the mouse until you tab out/in (KDE Wayland/XWayland) | `GrabFullscreen=Y` in Wine's X11 driver | `02-overwolf-fixes.sh` |
 | – | (optional) ads | block the ad script's host | `adblock.sh` |
 
 ## Requirements

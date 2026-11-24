@@ -14,5 +14,6 @@ restore_link wintrust.dll
 rm -f "$SYS/wintrust_real.dll"
 if [ -f "$BK/OverwolfBrowser.exe.orig" ] && OW="$(overwolf_dir)"; then cp "$BK/OverwolfBrowser.exe.orig" "$OW/OverwolfBrowser.exe"; log "restored OverwolfBrowser.exe"; fi
 for k in d3dx11_43 wintrust; do w reg delete 'HKCU\Software\Wine\DllOverrides' /v "$k" /f >/dev/null || true; done
+w reg delete 'HKCU\Software\Wine\X11 Driver' /v GrabFullscreen /f >/dev/null || true
 wait_wine
 log "done. Remove the launch option ('protonhax init ... wf-aleca.sh %command%') in Steam to stop starting Overwolf."
