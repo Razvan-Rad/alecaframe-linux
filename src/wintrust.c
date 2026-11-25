@@ -101,15 +101,6 @@ static int __stdcall g_RegisterRawInputDevices(const RID *d, u32 n, u32 cb) {
   if (!k) return 1;
   return r_RegisterRawInputDevices(keep, k, cb);
 }
-static void *(__stdcall *r_SetCursor)(void *);
-static void *__stdcall g_SetCursor(void *c) { glog("seen SetCursor", (u64)c, thread_start()); return r_SetCursor(c); }
-static int (__stdcall *r_ClipCursor)(const void *);
-static int __stdcall g_ClipCursor(const void *rc) { glog("seen ClipCursor", (u64)rc, thread_start()); return r_ClipCursor(rc); }
-static int (__stdcall *r_SetCursorPos)(int, int);
-static int __stdcall g_SetCursorPos(int x, int y) { glog("seen SetCursorPos", ((u64)(u32)x << 32) | (u32)y, thread_start()); return r_SetCursorPos(x, y); }
-static u32 (__stdcall *r_SendInput)(u32, void *, int);
-static u32 __stdcall g_SendInput(u32 n, void *in, int cb) { glog("seen SendInput", n, thread_start()); return r_SendInput(n, in, cb); }
-
 static int lower_eq(const char *a, const char *b) {
   for (; *a && *b; a++, b++) { char x = *a, y = *b; if (x >= 'A' && x <= 'Z') x += 32; if (y >= 'A' && y <= 'Z') y += 32; if (x != y) return 0; }
   return *a == *b;
@@ -157,11 +148,6 @@ static void guard_init(void) {
   hook_iat(ow, "SetForegroundWindow", (void *)g_SetForegroundWindow, (void **)&r_SetForegroundWindow);
   hook_iat(ow, "LockSetForegroundWindow", (void *)g_LockSetForegroundWindow, (void **)&r_LockSetForegroundWindow);
   hook_iat(ow, "RegisterRawInputDevices", (void *)g_RegisterRawInputDevices, (void **)&r_RegisterRawInputDevices);
-  /* observe only (logged, passed through) - to see what else Overwolf does to the game's input */
-  hook_iat(ow, "SetCursor", (void *)g_SetCursor, (void **)&r_SetCursor);
-  hook_iat(ow, "ClipCursor", (void *)g_ClipCursor, (void **)&r_ClipCursor);
-  hook_iat(ow, "SetCursorPos", (void *)g_SetCursorPos, (void **)&r_SetCursorPos);
-  hook_iat(ow, "SendInput", (void *)g_SendInput, (void **)&r_SendInput);
 }
 
 long __stdcall WinVerifyTrust(void *hwnd, void *action, void *data) {

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Step 2 - fixes that need Overwolf already installed. Run with Warframe and Overwolf closed.
+# Step 3 - fixes that need Overwolf already installed. Run with Warframe and Overwolf closed.
 #   a) d3dx11_43.dll: swap Wine's stub for Microsoft's real DLL (Overwolf ships a copy) so Overwolf's in-game
 #      overlay can compile its shaders. Without it the overlay never starts, Overwolf's game-events provider
 #      gives up waiting for a renderer, and AlecaFrame reports "No game data".
 #   b) OverwolfBrowser.exe entry-point patch + wintrust proxy (see docs/TROUBLESHOOTING.md): without them every
 #      Chromium helper process crashes and no Overwolf/AlecaFrame window renders.
-# (The mouse-capture / 3D-camera-lost-on-click issue is fixed in the launcher, not here - see TROUBLESHOOTING.md
-#  "mouse capture lost" and wf-launch.c: Overwolf is started with a different SteamGameId so its windows get a
-#  distinct WM_CLASS and the window manager treats AlecaFrame as a separate app.)
+#      The same proxy also carries the "Overwolf input guard" (only active inside Warframe.x64.exe): it stops
+#      Overwolf's overlay code from calling AttachThreadInput/ShowCursor/SetForegroundWindow on the game's input,
+#      which otherwise kills the 3D camera after you click back into the game.
 # Everything replaced is backed up under ~/.local/share/alecaframe-linux/backup; scripts/uninstall.sh restores it.
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$here/lib.sh"
@@ -37,4 +37,4 @@ if [ ! -f "$SYS/wintrust_real.dll" ]; then cp "$PROTON_DIR/files/lib/wine/x86_64
 cp "$build/wintrust.dll" "$SYS/wintrust.dll"; rm -rf "$build"
 reg_add 'HKCU\Software\Wine\DllOverrides' /v wintrust /d native,builtin
 wait_wine
-log "done. Next: scripts/03-install-launcher.sh"
+log "done. Start Warframe, then AlecaFrame from Steam."

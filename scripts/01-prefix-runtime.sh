@@ -61,4 +61,4 @@ reg_add 'HKLM\Software\Microsoft\.NETFramework' /v InstallRoot /t REG_SZ /d 'C:\
 w regsvr32 /s 'C:\windows\Microsoft.NET\Framework64\v4.0.30319\diasymreader.dll' >/dev/null
 w 'C:\windows\syswow64\regsvr32.exe' /s 'C:\windows\Microsoft.NET\Framework\v4.0.30319\diasymreader.dll' >/dev/null
 wait_wine
-log "done. Next: install Overwolf (see README), then run scripts/02-overwolf-fixes.sh"
+log "done. Next: scripts/02-install-launcher.sh"

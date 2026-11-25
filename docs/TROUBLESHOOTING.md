@@ -37,8 +37,10 @@ part of the OS). Take it from the .NET 4.0 installer (`netfx_Core.mzz`, `_003_ms
 10-line C# program: `EnumProcessModules` on a real process handle returns `ERROR_ACCESS_DENIED`.
 Cause: the game's wineserver runs inside Steam's pressure-vessel container (its own user namespace); processes you
 start from outside it (`protonhax run`, plain `wine`) cannot be inspected by that server. Not fixed by
-`kernel.yama.ptrace_scope=0`. Fix: run Overwolf inside the same container — launch wrapper (`03-install-launcher.sh`)
-rewrites Steam's final `proton waitforexitandrun …` to run a batch file inside it.
+`kernel.yama.ptrace_scope=0`. Fix: run Overwolf inside the same container. `wf-aleca.sh` sets
+`STEAM_COMPAT_LAUNCHER_SERVICE=proton`, so Proton starts a steam-runtime launcher service inside the container;
+`alecaframe.sh` joins it with `steam-runtime-launch-client --inside-app=230410 -- wine …`.
+If `alecaframe.sh` keeps "waiting for Warframe", the game was started without the wrapper as its launch option.
 
 ## Overwolf starts but no window; every extension "crashed 5 times. Giving up."
 
@@ -80,24 +82,43 @@ manager sees AlecaFrame and Warframe as **one application**; a focus move betwee
 produce the clean cross-app focus-out/in that makes Wine re-grab the pointer for relative-mouse mode. A foreign
 (non-Wine) window, or keyboard alt-tab, does produce it -- hence the workarounds.
 
-Fix (in `src/wf-launch.c`, the launcher): start Overwolf with `SteamGameId=overwolf`, so its windows get a different
-WM_CLASS (`steam_proton`) than the game's `steam_app_<appid>`. The WM then treats AlecaFrame as a separate app and
-returning to the game re-grabs the pointer. The game's own `SteamGameId` is restored before the launcher runs, so the
-game window keeps its normal class. Verified: overriding `SteamGameId` for a Wine process changes its WM_CLASS.
-Does not affect Overwolf's overlay injection (it finds the game by process, not window class).
+Fix (in `alecaframe.sh`): start Overwolf with `SteamGameId=overwolf` **and** `SteamAppId=overwolf` set in its Unix
+environment, so its windows get WM_CLASS `steam_app_overwolf` instead of the game's `steam_app_<appid>` (current
+Proton's winex11 takes the class from `SteamAppId`; setting only `SteamGameId` is not enough). The WM then treats
+AlecaFrame as a separate app and returning to the game re-grabs the pointer. Check with
+`xprop WM_CLASS` on the AlecaFrame window. Does not affect Overwolf's overlay injection (it finds the game by
+process, not window class).
 
 Things that did NOT fix it (for the record): `UseTakeFocus=N`, `GrabFullscreen=Y`, KWin window rules, KWin
 focus-follows-mouse, borderless vs fullscreen, a Wine virtual desktop (and the virtual desktop / gamescope approaches
-merge the two windows into one surface, which is usually not wanted). No game-side input config exists to change it
+merge the two windows into one surface, which is usually not wanted), Proton's Wayland driver
+(`PROTON_ENABLE_WAYLAND=1`: Warframe renders incorrectly). No game-side input config exists to change it
 (Warframe uses ClipCursor + raw input with no exposed toggle).
 
-## Overwolf keeps running after you quit Warframe
+## 3D camera dead after clicking outside the game and back (first click fails, clicking out twice fixes it)
+
+Happens only while Overwolf runs (Warframe alone is fine), even with the separate WM_CLASS above.
+With `WINEDEBUG=+timestamp,+pid,+tid,+cursor,+event,+win`: on every click back the game gets `FocusIn`, hides the
+cursor and calls `ClipCursor`, and winex11 logs `grab_clipping_window clipping to …` — the pointer grab itself is
+fine. What stops is the mouse stream: no more `map_raw_event_coords` for the game process. Around those moments
+Overwolf's code inside the game (OWClient.dll, injected for the overlay) calls `NtUserAttachThreadInput` (from the
+game's main and render threads, attaching the game's input queue) and blinks `ShowCursor(1)`/`ShowCursor(0)` from
+its own thread.
+
+Fix: the "Overwolf input guard" in the wintrust proxy (`src/wintrust.c`, installed by `03-overwolf-fixes.sh`).
+OWClient imports WINTRUST, so the proxy is loaded right next to it; inside `Warframe.x64.exe` it rewrites OWClient's
+import-table entries for `AttachThreadInput`, `ShowCursor`, `SetForegroundWindow`, `LockSetForegroundWindow` to
+no-ops and drops raw-mouse entries from its `RegisterRawInputDevices`. `AttachThreadInput` was the decisive one.
+The overlay keeps rendering. Every decision is logged to `C:\users\steamuser\owguard.log` in the prefix (no
+`guard: OWClient found` line = the proxy did not see OWClient; an Overwolf update may need the proxy rebuilt).
+`OWGUARD=0` disables it.
 
 ## Overwolf keeps running after you quit Warframe
 
-Overwolf lives in the game's Wine session, so the session (and `protonhax`'s state, and Steam's "running" status)
-stays alive until Overwolf exits. Registry edits made while it is alive are overwritten when its wineserver exits —
-always quit Overwolf (`pkill -f OverwolfLauncher` and friends) before running the scripts.
+Overwolf lives in the game's Wine session, so the session (and Steam's "running" status for Warframe) stays alive
+until Overwolf exits. `alecaframe.sh` closes Overwolf 15 s after Warframe exits, and when you press Stop on the
+AlecaFrame shortcut. Registry edits made while it is alive are overwritten when its wineserver exits — always quit
+Overwolf before running the scripts.
 
 ## Ads
 
