@@ -10,7 +10,8 @@ mkdir -p "$out"; cd "$out"
 { echo 'LIBRARY wintrust'; echo 'EXPORTS'
   llvm-readobj --coff-exports "$real" | grep -E '^\s+Name:' | sed 's/ *Name: //' | grep -v -x WinVerifyTrust | sed 's/.*/&=wintrust_real.&/'
   echo 'WinVerifyTrust'; } > wintrust.def
-printf 'LIBRARY kernel32.dll\nEXPORTS\nLoadLibraryA\nGetProcAddress\n' > k32.def
+{ printf 'LIBRARY kernel32.dll\nEXPORTS\n'; printf '%s\n' LoadLibraryA GetProcAddress GetModuleHandleW GetModuleFileNameW VirtualProtect \
+  GetCurrentThread GetCurrentThreadId GetEnvironmentVariableA CreateFileW WriteFile CloseHandle; } > k32.def
 llvm-dlltool -m i386:x86-64 -d k32.def -l kernel32.lib
 clang --target=x86_64-pc-windows-msvc -O2 -ffreestanding -fno-stack-protector -nostdlib -fuse-ld=lld -shared \
   -Wl,/entry:DllMain -Wl,/nodefaultlib -Wl,/noimplib -Wl,/def:wintrust.def -o wintrust.dll "$src/wintrust.c" kernel32.lib

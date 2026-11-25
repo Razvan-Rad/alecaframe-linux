@@ -23,6 +23,7 @@ automates the fixes.
 | 5 | Every Chromium helper crashes (`STATUS_ACCESS_VIOLATION` at `0x140000000`) → no UI | entry-point patch for `OverwolfBrowser.exe` (+ signature-check proxy) | `02-overwolf-fixes.sh` |
 | 6 | AlecaFrame says **"No game data"** | swap Wine's stub `d3dx11_43.dll` for Microsoft's real one | `02-overwolf-fixes.sh` |
 | 7 | 3D camera stops capturing after clicking the AlecaFrame window, until you alt-tab or click via another app (KWin/XWayland) | launch Overwolf with a different `SteamGameId` so its windows get a distinct WM_CLASS and the WM treats AlecaFrame as a separate app | `wf-launch.exe` (launcher) |
+| 8 | 3D camera dead after clicking back into Warframe (first click fails, clicking out twice "fixes" it) — Overwolf's in-game overlay code calls `AttachThreadInput`/`ShowCursor`/`SetForegroundWindow` on the game's input queue | "OW input guard" in the wintrust proxy rewrites those imports of `OWClient.dll` (inside `Warframe.x64.exe` only) to no-ops; overlay still renders. `OWGUARD=0` disables, log in `C:\users\steamuser\owguard.log` | `02-overwolf-fixes.sh` |
 | – | (optional) ads | block the ad script's host | `adblock.sh` |
 
 ## Requirements
