@@ -5,8 +5,9 @@
 #      gives up waiting for a renderer, and AlecaFrame reports "No game data".
 #   b) OverwolfBrowser.exe entry-point patch + wintrust proxy (see docs/TROUBLESHOOTING.md): without them every
 #      Chromium helper process crashes and no Overwolf/AlecaFrame window renders.
-#   c) GrabFullscreen=Y: under XWayland, clicking AlecaFrame's window and then back into Warframe left the game
-#      unable to capture the mouse until you tabbed out and in.
+# (The mouse-capture / 3D-camera-lost-on-click issue is fixed in the launcher, not here - see TROUBLESHOOTING.md
+#  "mouse capture lost" and wf-launch.c: Overwolf is started with a different SteamGameId so its windows get a
+#  distinct WM_CLASS and the window manager treats AlecaFrame as a separate app.)
 # Everything replaced is backed up under ~/.local/share/alecaframe-linux/backup; scripts/uninstall.sh restores it.
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$here/lib.sh"
@@ -35,7 +36,5 @@ if [ -L "$SYS/wintrust.dll" ]; then readlink "$SYS/wintrust.dll" > "$BK/wintrust
 if [ ! -f "$SYS/wintrust_real.dll" ]; then cp "$PROTON_DIR/files/lib/wine/x86_64-windows/wintrust.dll" "$SYS/wintrust_real.dll"; chmod u+w "$SYS/wintrust_real.dll"; fi
 cp "$build/wintrust.dll" "$SYS/wintrust.dll"; rm -rf "$build"
 reg_add 'HKCU\Software\Wine\DllOverrides' /v wintrust /d native,builtin
-# --- c) pointer grab for the full-monitor game window (XWayland) --------------------------------------------
-reg_add 'HKCU\Software\Wine\X11 Driver' /v GrabFullscreen /t REG_SZ /d Y
 wait_wine
 log "done. Next: scripts/03-install-launcher.sh"

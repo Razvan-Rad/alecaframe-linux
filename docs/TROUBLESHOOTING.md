@@ -68,13 +68,30 @@ Things that looked suspicious but were **not** the cause: `Bad data from invento
 warning about unknown inventory fields); cross-process memory reads (verified working inside the container);
 `ptrace_scope`.
 
-## Mouse capture fails after clicking AlecaFrame's window (KDE Wayland / XWayland)
+## 3D camera / mouse capture lost after clicking the AlecaFrame window
 
-Click AlecaFrame's separate window, click back into Warframe: the game does not capture the mouse on the first click
-until you tab out and back in. Overwolf's log is clean (`Lost foreground, release control` / hooks reinstalled), so
-it is Wine's focus/grab handling under XWayland. `UseTakeFocus=N` did **not** help; `GrabFullscreen=Y` (Wine X11 driver,
-`HKCU\Software\Wine\X11 Driver`) did. Workaround without any change: open AlecaFrame with Overwolf's in-game
-overlay hotkey instead of clicking its window.
+Repro: click AlecaFrame's window, then click back on Warframe -> camera (relative-mouse look) is dead. Returning to
+the game via **keyboard alt-tab**, or by clicking **a non-Wine window first** (e.g. a browser) and then the game,
+restores it.
+
+Cause: AlecaFrame (Overwolf) and Warframe run in the **same Wine prefix**, and Proton tags every window in the prefix
+with the same WM_CLASS -- `steam_app_<SteamGameId>` (winex11 builds it from the `SteamGameId` env). So the window
+manager sees AlecaFrame and Warframe as **one application**; a focus move between two windows of the same app does not
+produce the clean cross-app focus-out/in that makes Wine re-grab the pointer for relative-mouse mode. A foreign
+(non-Wine) window, or keyboard alt-tab, does produce it -- hence the workarounds.
+
+Fix (in `src/wf-launch.c`, the launcher): start Overwolf with `SteamGameId=overwolf`, so its windows get a different
+WM_CLASS (`steam_proton`) than the game's `steam_app_<appid>`. The WM then treats AlecaFrame as a separate app and
+returning to the game re-grabs the pointer. The game's own `SteamGameId` is restored before the launcher runs, so the
+game window keeps its normal class. Verified: overriding `SteamGameId` for a Wine process changes its WM_CLASS.
+Does not affect Overwolf's overlay injection (it finds the game by process, not window class).
+
+Things that did NOT fix it (for the record): `UseTakeFocus=N`, `GrabFullscreen=Y`, KWin window rules, KWin
+focus-follows-mouse, borderless vs fullscreen, a Wine virtual desktop (and the virtual desktop / gamescope approaches
+merge the two windows into one surface, which is usually not wanted). No game-side input config exists to change it
+(Warframe uses ClipCursor + raw input with no exposed toggle).
+
+## Overwolf keeps running after you quit Warframe
 
 ## Overwolf keeps running after you quit Warframe
 

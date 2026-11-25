@@ -26,7 +26,11 @@ args=("$@"); out=(); n=${#args[@]}; i=0; done_rewrite=0
 while (( i < n )); do
   out+=("${args[i]}")
   if (( ! done_rewrite )) && [[ "${args[i]}" == "waitforexitandrun" || "${args[i]}" == "run" ]] && (( i > 0 )) && [[ "${args[i-1]}" == */proton ]]; then
-    out+=('C:\windows\system32\cmd.exe' '/c' "$(to_win "$HERE")\\wf-start.bat" "$(to_win "$HERE")" "$(to_win "${args[i+1]}")")
+    if [ -f "$HERE/wf-launch.exe" ]; then   # GUI launcher: no console window to steal focus
+      out+=("$(to_win "$HERE/wf-launch.exe")" "$(to_win "$HERE")" "$(to_win "${args[i+1]}")")
+    else                                    # fallback: batch file via cmd.exe (opens a console window)
+      out+=('C:\windows\system32\cmd.exe' '/c' "$(to_win "$HERE")\\wf-start.bat" "$(to_win "$HERE")" "$(to_win "${args[i+1]}")")
+    fi
     ((i++)); done_rewrite=1
   fi
   ((i++))
